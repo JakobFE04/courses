@@ -1,5 +1,6 @@
 # 1. Veiledet læring
 ## 1.1 Data
+Variabler (statistikk) eller features (maskinlæring) er samme greien.
 
 Kvalitative eller kvantitative variabeler:
 - Kvalitative representerer kategorier.
@@ -7,8 +8,15 @@ Kvalitative eller kvantitative variabeler:
 - Kvantitative representerer numeriske verdier:
 	- Inntekt, alder, antall lyttere, areal, nedbørsmengde, temperatur...
 
+Features benevnes $x_{n}$ 
+Targets benevnes $y_{n}$
+Indekserer med $(i)$ som slik: $x^{(i)}$
 Eksempel Titanic datasett:
 ![[Pasted image 20260824113923.png]]
+
+Vi vil fjerne hullete data, encode kvalitative variabler og endre størrelsesorden på numeriske verdier. Deretter kan vi se på dataene!
+
+
 
 ## 1.2 Logistisk regresjon
 
@@ -18,6 +26,8 @@ $$
  z=\sum_{i=1}^{n}w_{i} x_{i}+b= \mathbf{w} \mathbf{x}+b
  \end{equation} 
 $$
+Der $\mathbf{w}$ er vektene og $b$ er bias.
+
 Kan gjøres om til sansynlighetsfordeling (mellom 0 og 1) ved å sette inn for #Sigmoid-funksjonen (også kjent som #aktiveringsfunksjon)
 $$
  \begin{equation} 
@@ -33,12 +43,23 @@ $$
  \end{equation} 
 $$
 Den tar inn modellprediksjonene $y_{pred}$ og #targets $y$. **NB!** må være deriverbar (se [[#1.2.2 Gradient descent]])
-
+[Eksempel link](https://www.geeksforgeeks.org/machine-learning/ml-common-loss-functions/)
+Eksempel på funksjon for klassifisering av binær target:
+$$
+ \begin{equation} 
+ {L}(y_{pred},y) = y_{pred}^y(1-y_{pred})^{1-y} 
+ \end{equation} 
+$$
+$$
+ \begin{equation} 
+ \implies{L}(\mathbf{w},b|x,y)=\sigma(\mathbf{wx}+b)^y(1-\sigma(\mathbf{wx}+b))^{(1-y)} 
+ \end{equation} 
+$$
 Vi vil finne en #likelihood og ikke en sannsynlighet fordi vi **ikke** har lyst til å endre dataene slik at sannsynligheten for target endrer seg. men heller endre modellen slik at den estimerte sannsynligheten passer med den virkelige (target).
 
-Vi ønsker å ha likelihood for å estimere riktig være maksimal, så vi kan legge til et minustegn på tapsfunksjonen for å minimere denne. Vi bruker gjerne å ta logaritmen av av likelihood for å f"**log-likelihood** (Minimere tap == maksimere Likelihood). Dette kalles for #cross-entropy-loss.
+Vi ønsker å ha likelihood for å estimere riktig være maksimal, så vi kan legge til et minustegn på tapsfunksjonen for å minimere denne. Vi bruker gjerne å ta logaritmen av av likelihood for å få **log-likelihood** (Minimere tap == maksimere Likelihood). Dette kalles for #cross-entropy-loss.
 
-Eksempel på tapsfunksjon:
+Eksempel på tapsfunksjon: #binary_cross-entropy-loss
 Vektet tapsfunksjon: Maksimere likelihood for riktig kategorisering av dataene
 $$
  \begin{equation} 
@@ -54,7 +75,7 @@ $$
  \theta=(\mathbf{w},b) \implies \hat{\theta}=arg_{\theta} \min \frac{1}{N} \sum_{i=1}^{N} \mathcal{L}(f(\mathbf{x}^{(i)};\theta),y^{(i)})
  \end{equation} 
 $$
-Dette kan løses med bruk av [[#1.2.2 Gradient descent|gradient descent]].
+Detta kalles **conditional maximum likelihood estimation**, og kan løses med bruk av [[#1.2.2 Gradient descent|gradient descent]].
 
 ### 1.2.2 Gradient descent
 Når vi ser på funksjonen vår beveger vi oss i rommet spent ut av verdiene $\theta$, fire verdier gir et fire dimensjonalt rom. Vi vil finne minimumspunktet til funksjonen uten at vi kjenner formen til den. **NB!** så lenge tapsfunksjonen er konveks, så vil vi alltid kunne finne lokalt minium med gradienten.
@@ -65,7 +86,7 @@ $$
  \theta^{t+1}=\theta^t - \eta  \frac{\partial}{\partial \theta} \mathcal{L}(f(\mathbf{x};\theta),y)
  \end{equation} 
 $$
-Der $\eta$ er #læringsraten, som bestemmer hvor mye hvert steg $t$ skal korrigere til parameterverdien. **NB!** $\eta$ eller læringsraten er en parameter for å justere treningen til modellen, men er **ikke** en del av modellen! Dette kaller vi for en #hyperparameter, som definerer læringsprosessen, men ikke modellen.
+Der $\eta$ er #læringsraten, som bestemmer hvor mye hvert steg $t$ skal korrigere til parameterverdien. **NB!** $\eta$ eller læringsraten er en parameter for å justere treningen til modellen, men er **ikke** en del av modellen! Dette kaller vi for en #hyperparameter, som definerer læringsprosessen, men ikke modellen. Den kan vi leke med/justere mye for å optimalisere, men generelt ønsker små steg for å ikke hoppe over minimumspunktet men også ikke fordi da vil modellen bruke lang tid på å læres.
 
 Framgangsmåten vil da bli å finne gradienten av tapsfunksjonen, med hensyn til vær av parametrene. Eksempel med titanic modellen:
 ![[Pasted image 20260824123129.png]]
@@ -96,20 +117,20 @@ class LogisticRegression:
 		return np.mean(true_values == predictions)
 
 def fit(self, x, y): 
-self.weights = np.zeros(x.shape[1]) #x.shape = datapunkter, features 
-self.bias = 0 
+	self.weights = np.zeros(x.shape[1]) #x.shape = datapunkter, features 
+	self.bias = 0 
 
-# Gradient Descent 
-for _ in range(self.epochs): 
-	lin_model = np.matmul(self.weights, x.transpose()) + self.bias 
-	y_pred = self._sigmoid(lin_model) 
-	grad_w, grad_b = self.compute_gradients(x, y, y_pred)
-	self.update_parameters(grad_w, grad_b) 
-	
-	loss = self._compute_loss(y, y_pred) 
-	pred_to_class = [1 if _y > 0.5 else 0 for _y in y_pred] 
-	self.train_accuracies.append(accuracy(y, pred_to_class)) 
-	self.losses.append(loss) 
+	# Gradient Descent 
+	for _ in range(self.epochs): 
+		lin_model = np.matmul(self.weights, x.transpose()) + self.bias 
+		y_pred = self._sigmoid(lin_model) 
+		grad_w, grad_b = self.compute_gradients(x, y, y_pred)
+		self.update_parameters(grad_w, grad_b) 
+		
+		loss = self._compute_loss(y, y_pred) 
+		pred_to_class = [1 if _y > 0.5 else 0 for _y in y_pred] 
+		self.train_accuracies.append(accuracy(y, pred_to_class)) 
+		self.losses.append(loss) 
 
 def predict(self, x): 
 	lin_model = np.matmul(x, self.weights) + self.bias 
@@ -134,7 +155,6 @@ predictions = log_reg.predict(X_test)
 
 
 ### 1.2.4 Evaluering
-
 Lurt å plotte tapet (loss) mot treffsikkerhet (accuracy) for å se treningsprosedyren er god.
 ![[Pasted image 20260824130912.png]]
 
@@ -154,16 +174,18 @@ $$
 $$
 Der $\texttt{K}$ er klassifiseringsterskelen. Hvis en vil være sikker på at modellens predikasjon er riktig, vil en velge en høyere verdi for klassiferingsterkselen som 0.7. 
 
-Det er vanlig å plotte **FPR** (False Positive Rate) og **TPR** (True Positive Rate) som funksjon av klassifiseringsterskelen. Dette gir oss **Receiver Operating Characteristic** ( #ROC)- kurven. Området under kurven til ROC kaller vi for #AUC (area under curve) som vi ønsker skal være større enn 0.5 (tilsvarer tilfeldig gjetting). ROC AUC representer sannsynligheten for at modellen vil predikere en høyere verdi for et tilfeldig valgt posititvt datapunkt enn for et tilfeldig valgt negativt datapunkt.
+Det er vanlig å plotte **FPR** (False Positive Rate) og **TPR** (True Positive Rate) som funksjon av klassifiseringsterskelen. Dette gir oss **Receiver Operating Characteristic** ( #ROC)- kurven. Området under kurven til ROC kaller vi for #AUC (area under curve) som vi ønsker skal være større enn 0.5 (tilsvarer tilfeldig gjetting). ROC AUC representer sannsynligheten for at modellen vil predikere en høyere verdi for et tilfeldig valgt posititvt datapunkt enn for et tilfeldig valgt negativt datapunkt. 
 ![[Pasted image 20260824133106.png]]
-
- En annen vanlig kurve å studere er den som viser precision (TPR) og recall (PPV). 
+Ingen tradeof mellom TPR og FPR, men alltid en tradeoff med metrikkene en ønsker å ha høy:
+ - En annen vanlig kurve å studere er den som viser precision (TPR) og recall (PPV). 
 ![[Pasted image 20260824133534.png]]
 Presisjon: Angir andel korrekt predikert positive per predikert positiv.
  - Høy presisjon svarer til lavt relativt antall falske alarmer.
+ - Viktig om falske alarmer er dyrt, som å rykke ut til brann.
 
 Recall: Angir andell korrekt predikert positive per totalt psoitive.
 - Høy recall svarer til lavt antall missed cases.
+- Viktig om kritisk å ikke treffe på en case, som med detektere kreft.
 
 ### 1.2.6 Kort om entropi og cross entropy loss
 ![[Pasted image 20260824133721.png]]
@@ -215,4 +237,44 @@ $$
 
 
 ### 1.2.9 Trening på ubalansert data
+Om vi har mye flere datapunkter for forskjellige klasser, ender vi opp med å få **underrepresentert** og **overrepresentert** klasser. Hvis forskjellen mellom klasser blir for stor, vil modellen belønnes om den bare predikerer at alle datapunktene tilhører den overrepresenterte klassen som gir en dårlig modell. For å justere skjevfordelingen mellom klassene kan vi endre på klassifiseringsterskelen som i utrykket:
+
+$$
+ \begin{equation} 
+ \texttt{y\_{pred = [1 if \_y > K=0.5 else 0 for \_y in y\_pred]}}
+ \end{equation} 
+$$
+fra 0.5 til en verdi som gir modellen høyere verdi på de andre metrikkene. Kan bruke precision-recall plottet som et ugangspunkt. Å maksimere en metrikk kommer på bekostning av andre metrikker og å justere terkselen forbedrer **ikke** modellen: det endrer kun hvordan vi forholder oss til modellens prediksjoner. Vi kan også endre dataene eller tapsfunksjonen.
+
+#### Resampling
+##### Undersampling: 
+Her trekker vi like mange datapunkter fra den overrepresenterte klassen som vi har tilgjengelig i den underrepresenterte klassen. Da ender vi opp med et datasett bestående av like mange datapunkter fra hver klasse, men potensielt veldig få datapunkter totalt. Dette kan føre til at modellen som trenes på dataene undertilpasser (underfit).
+##### Oversampling:
+Her kopierer vi instanser fra den underrepresenterte klassen, inntil vi har like mange datapunkter fra den underrepresenterte som fra den overrepresenterte klassen. Da ender vi også opp med like mange datapunkter fra hver klasse, men potensielt mange duplikater fra den underrepresenterte klassen. Dette kan føre til at modellen som trenes på dataene overtilpasser (overfit)
+
 #### Vektet tapsfunksjon
+Vi kan også fortelle modellen hvilken av klassene som er ekstra viktig ved å straffe feilprediskjoner (høyere tap) på den viktige klassen, relativt til de andre klassene. F.eks med #binary_cross-entropy-loss. Vi ser at for de to leddene, bidrar kun det første leddet til tapet når y=1 og det andre leddet når y=0. Ved å sette inn vektene $w_{1} \ \& \ w_{0}$ for henholdsvis første og andre leddet kan vi gjøre at feilprediksjoner for den ene vil gi ut høyere tap enn den andre.
+
+
+## 1.3 Beslutningstrær
+### 1.3.1 Noder
+#Root-node eller rotnoden er starten på beslutningstreet av dataene med alle featuresene som er splittet i en trestruktur. 
+
+Under har vi beslutningsnoder (de)cision nodes) som begge har kriterier for å splitte dataene (splitting criteria). Alle noder som splitter dataene er enten rotnoden eller beslutningsnoder. 
+
+Nederst i treet er løvnodene (leaf nodes) som ikke splitter dataene, som inneholder predikert verdi for datainstansen som ble sendt gjennom treet.
+
+Beslutningstrær består av trestumper (tree stumps) som igjen består av en rotnode og $n$ løvhoder, for $n$ mulige utfall.
+
+Treningsdataene brukes for å finne ut hvilke trestumper (og tilhørende beslutningskriterier) som bør settes sammen for å lage treet. N˚ar vi bygger beslutningstrær ønsker vi alltid å velge det splitt-kriteriet som lar oss ta beslutningen tidligst mulig, altså reduserer usikkerheten mest mulig. Redusert usikkerhet er endringen i usikkerhet etter sammenliknet med før splitt. I hovedsak brukes følgende tre metrikker for å måle hvor mye et splitt-kriterium (feature og verdi) reduserer usikkerheten:
+- Log loss (Se #tapsfunksjon og #cross-entropy-loss)
+- Gini impurity
+- Entropi
+
+### 1.3.2 Gini impurity
+Gini-urenheten er et tall i \[0, 0.5] som angir sannsynligheten for at et nytt, tilfeldig datapunkt feilklas- sifiseres hvis det gis et tilfeldig label i henhold til klassedistribusjonen i datasettet. Gitt et datasett D bestående av datapunkter fra k klasser, med sannsynlighet pi for at en instans tilhører klassen i ved en gitt node, er datasettets Gini-urenhet:
+$$
+ \begin{equation} 
+ Gini(D)=1-\sum_{i=1}^{k} p_{i}^2 
+ \end{equation} 
+$$
