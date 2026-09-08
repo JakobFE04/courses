@@ -86,30 +86,52 @@ class LogisticRegression():
     def fit(self, X, y):
         # ====================================
         
-        self.weights = np.array([np.zeros(len(X[0])), np.zeros(len(X[0])), np.zeros(len(X[0]))]) # [weights_0, weights_1, weights_2]]
+        self.weights = np.array([np.zeros(len(X[0])),
+                                 np.zeros(len(X[0])),
+                                 np.zeros(len(X[0])),
+                                 np.zeros(len(X[0])),
+                                 np.zeros(len(X[0])),
+                                 np.zeros(len(X[0])),
+                                 #np.zeros(len(X[0])),
+                                 ]) 
+        # [weights_0, weights_1, weights_2]]
         self.bias = 0
 
 
         def linear_regression(self, X):
-            return self.bias + self.weights[0]*X[0] + self.weights[1]*X[1] + self.weights[2]*X[0]*X[1]
+            return self.bias + self.weights[0]*X[0] + self.weights[1]*X[1] + self.weights[2]*X[0]*X[1] + self.weights[3]*X[0]**2 + self.weights[4]*X[1]**2 + self.weights[5]*(X[0]*X[1])**2         
+
+        # We use feature extraction to get more features.
+        # This is in order to better classify the quadrants that each point is in 
+        # by getting the right sign (+ or -)
 
         def compute_gradients(self, X, y_pred, y):
             grad_0 = np.sum(y_pred - y) / len(y)
             grad_1 = (y_pred - y) @ X[0]
             grad_2 = (y_pred - y) @ X[1]
             grad_3 = (y_pred - y) @ (X[0]*X[1])
-            return np.array([grad_0, grad_1, grad_2, grad_3])
+            grad_4 = (y_pred - y) @ X[0]**2 
+            grad_5 = (y_pred - y) @ X[1]**2
+            grad_6 = (y_pred - y) @ (X[0]*X[1])**2 
+            #grad_7 = (y_pred - y) @ X[1]**3
+            #return np.array([grad_0, grad_1, grad_2, grad_3, grad_4, grad_5, grad_6, grad_7])
+            return np.array([grad_0, grad_1, grad_2, grad_3, grad_4, grad_5, grad_6])
 
         def loss_function_log(self, y_pred, y):
-            w_0 = 0.1 
-            w_1 = 0.1
-            return -w_1 * y @ np.log(y_pred) - w_0 * (1 - y) @ np.log(1 - y_pred) 
+            w_0 = 1
+            w_1 = 1
+            #return -w_1 * y @ np.log(y_pred) - w_0 * (1 - y) @ np.log(1 - y_pred) 
+            return np.sum(-(w_1 * y * np.log(y_pred) + w_0 * (1 - y) * np.log(1 - y_pred))) / np.size(y)
 
         def update_parameters(self, grad):
             self.bias = self.bias - self.lr * grad[0] 
             self.weights[0] = self.weights[0] - self.lr * grad[1] 
             self.weights[1] = self.weights[1] - self.lr * grad[2] 
             self.weights[2] = self.weights[2] - self.lr * grad[3] 
+            self.weights[3] = self.weights[3] - self.lr * grad[4] 
+            self.weights[4] = self.weights[4] - self.lr * grad[5] 
+            self.weights[5] = self.weights[5] - self.lr * grad[6] 
+            #self.weights[6] = self.weights[6] - self.lr * grad[7] 
 
         
         for _ in range(self.n_iterations):
@@ -125,11 +147,11 @@ class LogisticRegression():
     def predict_proba(self, X):
         # ====================================
         def linear_regression(self, X):
-            return self.bias + self.weights[0]*X[0] + self.weights[1]*X[1] + self.weights[2]*X[0]*X[1]
+            return self.bias + self.weights[0]*X[0] + self.weights[1]*X[1] + self.weights[2]*X[0]*X[1] + self.weights[3]*X[0]**2 + self.weights[4]*X[1]**2 + self.weights[5]*(X[0]*X[1])**2 #+ self.weights[5]*X[0]**3 + self.weights[6]*X[1]**3
 
         y_pred = self.sigmoid(linear_regression(self, X))
 
-        return [1 if _y > 0.5 else 0 for _y in y_pred]
+        return [1 if _y >= 0.5 else 0 for _y in y_pred], y_pred
          
 
 

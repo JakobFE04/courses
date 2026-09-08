@@ -275,6 +275,79 @@ Treningsdataene brukes for å finne ut hvilke trestumper (og tilhørende beslutn
 Gini-urenheten er et tall i \[0, 0.5] som angir sannsynligheten for at et nytt, tilfeldig datapunkt feilklas- sifiseres hvis det gis et tilfeldig label i henhold til klassedistribusjonen i datasettet. Gitt et datasett D bestående av datapunkter fra k klasser, med sannsynlighet pi for at en instans tilhører klassen i ved en gitt node, er datasettets Gini-urenhet:
 $$
  \begin{equation} 
- Gini(D)=1-\sum_{i=1}^{k} p_{i}^2 
+ \text{Gini}(D)=1-\sum_{i=1}^{k} p_{i}^2 
+ \end{equation} 
+$$
+Intuitivt: Du har en pose med kuler i ulike farger, hvor farge representerer klasse. Gini-urenheten måler hvor sannsynlig det er at du gjetter feil farge på en tilfeldig trukket kule, hvis du gjetter at kulens farge følger distribusjonen av farger i posen.
+**Lav Gini-urenhet** representerer scenariet der de fleste kulene har samme farge, slik at det er lav sannsynlighet for å gjette feil farge på en tilfeldig trukket kule. Datasettet regnes da å ha lav urenhet. 
+**Høy Gini-urenhet** representerer motsatt scenario, der klassene er forholdsvis likt representert, og det er høy sannsynlighet for å gjette feil farge på en tilfeldig trukket kule. Datasettet regnes da å ha høy urenhet.
+
+Hvis dataset $D$ splittes på feature $f$ til to subsett $D_{1}$ og $D_{2}$ med henholdsvis $n_{1}$ og $n_{2}$ datapunkter, har vi 
+$$
+ \begin{equation} 
+ \text{Gini}_{f}(D) = \frac{n_{1}}{n}\text{Gini}(D_{1}) + \frac{n_{2}}{n}\text{Gini}(D_{2}) 
+ \end{equation} 
+$$
+### 1.3.3 Entropi
+Gitt en sannsynlighetsfordeling over $k$ klasser, er sannsynligheten for hver klasse $p_{i}$. Entropien til fordelingen er da gitt ved:
+$$
+ \begin{equation} 
+ I(p_{1},\dots,p_{k}) = - \sum_{i=1}^{k} p_{i}\log_{2}(p_{i}) 
+ \end{equation} 
+$$
+![[Pasted image 20260908112207.png]]
+
+### 1.3.4 Bygge beslutningstrær
+For å bygge beslutningstrær brukes som oftest biblioteket $\texttt{sklearn.DecisionTreeClassifier}$. Den lar en velge mellom de splitt-kriteriene Gini impurity, entropy og log loss.
+
+Gini impurity og entropy er oppfører seg likt, hovedforskjellen er entropy har en ekstra logaritme i kjøretid. Gini impurity er mindre beregningstungt og default i $\texttt{sklearn.DecisionTreeClassifier}$. 
+
+Utover valg av beslutningskriterier, må vi bestemme:
+- Når skal vi slutte å splitte, selv om nederste node har instanser fra begge klassene?
+- Hva gjøres med løvnoder med instanser fra begge klassene?
+Kan oppstå for 3 tilfeller vi må slutte å splitte:
+1. Når det ikke finnes flere features å splitte på. Dvs har splittet på alle tilgjengelige features, men har ikke laget løvnoder som tilordner alle treningsdatapunktene til riktig klasse.
+2. Når det ikke finnes flere datapunkter å teste. Alle kombinasjoner av features som er **tilgjengelig i dataene** har blitt testet, men alle tenkelige kombinasjoner av features ikke er testet.
+3. Når treet har nådd en predifinert maksimal dybde fra hyperparameter vi velger før begynner å bygge treet.
+
+Etter at treet er bygget vil vi sannsynligvis ha løvnoder som inneholder treningsdatapunkter fra begge klasser. For å bestemme hvilken beslutning en slik node kan ta har vi flere muligheter, hvorav de vanligste er å returnere:
+1. Den dominante klassen i noden, altså label tilsvarende den dominante klassen fra treningsdataene i løvnoden.
+2. Et tilfeldig trukket label fra treningsdataene, altså **a priori**-sannsynligheten.
+
+![[Pasted image 20260908114711.png]]
+
+
+## 1.4 Regresjon
+### 1.4.1 Data og tapsfunksjon
+Prediksjon til kontinuerlige verdier kalles **regresjon**. Generelt: estimering av en (eller flere) kontinuerlige verdier. Enkleste tilfellet er lineære regresjonsmodellen:
+$$
+ \begin{equation} 
+ f(x)=\beta_{0}+\beta_{1}x_{1}+\beta_{2}x_{2}+\dots \beta_{n}x_{n} 
+ \end{equation} 
+$$
+Kan bruke igjen mye av kode fra klassifisering, og har igjen en bias $\beta_{0}$ og vekter/parameter $\beta_{i}$ for hver dataegenskap $x_{i}$. Vi bruker igjen #gradient_descent for å optimalisere parametrene.
+
+Vanligste tapsmodellen innen regresjon er #mean_squared_error:
+$$
+ \begin{equation} 
+ \text{MSE} = \frac{1}{2N} \sum_{i=1}^{N}[y^{(i)}-f\mathbf({x}^{(i)})]^2 
+ \end{equation} 
+$$
+Her er $y^{(i)}$ er target for datapunkt $\mathbf{x}^{(i)}$, f er modellen og summen (gjennomsnittet) går over alle N instansene (radene) i datasettet. Liten MSE gir god prediksjon og stor gir dårlig. Gradient descent for et datasett med en feature $x_{1}$ gir oss:
+
+$$
+ \begin{equation} 
+ \frac{\partial\mathcal{L}}{\partial \beta_{0}} = \frac{1}{N}\sum_{i=1}^{N}(\beta_{1}x^{(i)}+\beta_{0}-y^{(i)})
+ \end{equation}
+$$
+$$
+ \begin{equation} 
+  \frac{\partial\mathcal{L}}{\partial \beta_{1}} = \frac{1}{N}\sum_{i=1}^{N} x^{(i)}(\beta_{1}x^{(i)}+\beta_{0}-y^{(i)})
+ \end{equation} 
+$$
+Oppdateringsregel til parametrene i regresjonsmodellen blir da:
+$$
+ \begin{equation} 
+ \beta_{0}\leftarrow \beta_{0} -   η \frac{1}{N}\sum_{i=1}^{N}(f(x^{(i)})-y^ {(i)}) \ \ \ \beta_{1} \leftarrow \beta_{1} - η \frac{1}{N}\sum_{i=1}^{N} x^{(i)} (f(x^{(i)})-y^ {(i)})
  \end{equation} 
 $$

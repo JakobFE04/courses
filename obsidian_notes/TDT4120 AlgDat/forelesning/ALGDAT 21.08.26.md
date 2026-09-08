@@ -84,7 +84,7 @@ Som før, men for alle c > 0
 ![[Pasted image 20260821142125.png]]
 
 
-# Best/Worst/AVG case
+# Best/Worst/AVG ca![[Pasted image 20260821142125.png]]se
 Bruker vanligvis worst-case, avg kan være interessant og best case er uinteressant. 
 Avg vil vanligvis være antatt uniform fordeling og ta snitt av det.
 
