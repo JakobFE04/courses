@@ -232,9 +232,9 @@ $$
 
 
 ### 1.2.8 Dimensjonsforbannelsen
-
-**FINN NOTATER HER**
-
+Om vi ønsker å estimere en $d$-dimensjonal fordeling, er antallet datapunkt som må samles inn avhengig av d. Hvis vi tenker oss at vi estimerer fordelingen ved hjelp av et histogram med 10 bins (per dimensjon) hvor hver bin har 10 datapunkter (100 datapunkter per dimensjon). Et mye brukt datasett #MNIST har 784 dimensjoner, og det finnes ca $10^{82}$ atomer i universet.
+![[Pasted image 20260911230909.png]]
+ 
 
 ### 1.2.9 Trening på ubalansert data
 Om vi har mye flere datapunkter for forskjellige klasser, ender vi opp med å få **underrepresentert** og **overrepresentert** klasser. Hvis forskjellen mellom klasser blir for stor, vil modellen belønnes om den bare predikerer at alle datapunktene tilhører den overrepresenterte klassen som gir en dårlig modell. For å justere skjevfordelingen mellom klassene kan vi endre på klassifiseringsterskelen som i utrykket:
@@ -351,3 +351,118 @@ $$
  \beta_{0}\leftarrow \beta_{0} -   η \frac{1}{N}\sum_{i=1}^{N}(f(x^{(i)})-y^ {(i)}) \ \ \ \beta_{1} \leftarrow \beta_{1} - η \frac{1}{N}\sum_{i=1}^{N} x^{(i)} (f(x^{(i)})-y^ {(i)})
  \end{equation} 
 $$
+### 1.4.2 Bias og varians
+Skille mellom bias leddet $\beta_{0}$ og bias til en modell som forskjellen mellom den sanne verdien vi prøver å estimere, og forventningsverdiene til estimatet verdien:
+$$
+ \begin{equation} 
+ \text{Bias}(y, \hat{y})=\mathbb{E}[\hat{y}-y]=\mathbb{E}[\hat{y}]-y 
+ \end{equation} 
+$$
+Der $\hat{y}$ er en estimator (y_pred) beregnet på et tilfeldig utvalg datapunkter. 
+Annet nyttig er varians, som gir spredningen prediksjonene har fra gjennomsnitssverdien:
+$$
+ \begin{equation} 
+ \text{Var}[\hat{y}]=\mathbb{E}\left[ \left( \hat{y}-\mathbb{E}[\hat{y}] \right)^2 \right] 
+ \end{equation} 
+$$
+Dette er nyttig da
+- høy varians ofte indikerer at modellen er i overkant sensitiv til variasjoner i data, som tyder på overtilpasning (overfit),
+- lav varians ofte indikerer at modellen predikerer for nært gjennomsnittsprediksjonen, og ikke gjør tilstrekkelig nytte av informasjonen i features, som tyder på undertilpasning (underfit).
+
+For en og samme modell finnes det en avveining mellom bias og varians, kjent som #bias_variance_tradeoff. Kan utlede for MSE-tapsfunksjonen (se hefte):
+$$
+ \begin{equation} 
+ \text{MSE}[y,\hat{y}]=\text{Bias}(y,\hat{y})^2 + \text{Var}(\hat{y}) 
+ \end{equation} 
+$$
+Dette er viktig for å innse at en modells tap består av en komponent fra bias og en fra varians. Dette skaper "the bias variance dilemma" fordi å minske disse kildene til prediksjonsfeil fører til en konflikt, kan ikke ha begge for lave ettersom det gir en dårlig modell. (Lav bias gir veldig generalisering på treningsdataene slik at ikke bruker features ordentlig, som også går for varians.)
+
+### 1.4.3 Feature engineering
+Annvend lineær regresjonen til formen av testdataene dine! Gjør om featuresene $x$ fra linear til polynom ved $\{x_{1},x_{2}\} = \{x, x^2\}$  og sett opp lineærregresjonen med to features istedet. 
+NB! funker for alle tilfeller, ikke kun for veiledet læring eller regresjon!
+
+
+Generelt er feature engineering alle operasjoner vi utfører på datasettet vi bruker til maskinlæring, og inkluderer: 
+- **Feature selection**, altså utvelgelse av features, som da vi valgte å ikke ta med “Name” i klassifiseringsoppgaven på Titanic-dataene. 
+- **Feature preprocessing**, altså preprosessering av features, som da vi skalerte “Age” til intervallet (0, 1) for Titanic-dataene. 
+- **Feature extraction**, altså utvinning av features, som da vi nettopp laget en feature $x_{2}$ fra $x$. Det er også mulig å kombinere flere eksisterende features til nye.
+
+### 1.4.4 Trening, testing og validering
+Overtilpasning skjer når modellen har kapasitet til å tilpasse seg så godt til treningsdataene at det går utover generaliseringsevnen på testdatene. Viktig å kunne detektere overtilpasning slik at vi kan juste hyperparametrene underveis i treningen. Men vi kan ikke bruke trenings- eller testdataene til å tilpasse hyperparametrene, så det er vanlig å dele datasettet i tre deler:
+
+- **Treningsdata** brukes til å tilpasse modellparametrene (trening).
+- **Testdata** brukes for å rapportere ytelsen til den endelige modellen, brukes ikke til å gjøre noe som helst tilpasning.
+- **Valideringsdata** brukes for å monitorere modellen under trening, for å kunne justere hyperparametrene.
+
+For å ta i bruk valideringsdataen, må treningsprosedyren regne ut relevante metrikker på valideringsdataene et gitt antall ganger i løpet av treningen. Dette kan gjøre f.eks med å beregne tapet for både trenings- og valideringsdata og plotte opp mot hverandre:
+![[Pasted image 20260911212051.png]]
+a) Overtilpasser, b) undertilpasser, c) optimal tap for test og validering
+
+- Hvis tap på treningsdataene synker jevnt, mens loss pp valideringsdataene er høyere og/eller flater ut, overtilpasser modellen. 
+- Hvis begge kurvene flater ut med høy loss, undertilpasser modellen. Det betyr som oftest at den ikke har kapasitet eller riktig form til å tilpasse seg til dataene. Det mest åpenbare tegnet på undertilpasning er høy loss på treningsdataene. 
+- Hvis begge kurvene synker jevnt og flater ut, betyr det at modellen klarer å modellere trenings- dataene, og samtidig klarer å generalisere til nye data.
+Kan også bruke metrikkene til å justerehyperparametre, som læringsraten eller avgjøre hvor mange epoker en skal bruke for treningen.
+
+### 1.4.5 Kryssvalidering
+Hvordan skal dele inn i trenings-, test- og valideringsdata? Skal gjøres tilfeldig, men det vil påvirke testresultatet, avhengig av datasplitten. En løsning er #kryssvalidering.
+Enkleste formen er **leave-on-out-cross-validation** ( #LOOCV), hvor en observasjon fjernes fra det opprinnelige datasettet og brukes til testing. 
+For totalt $n$ datapunt vil vi kjøre trening på $n-1$ datapunkt, også loope igjennom for hvert datapunkt og bruke en og en som testdataen. De $n$ resultatene tar vi gjennomsnittet av for å få LOOCV-estimatet.
+
+Annen form er #k-fold_cross_validation, med $k$-splitter istedet for $n$. Man kjører da samme oppsett, men med $n-k$ treningsdatapunkt og $k$ testdatapunkt.
+
+### 1.4.6 Regresjonstrær
+For tydelige fordelinger av target data med ukjent funksjonsform vil ren regresjon funke dårlig. Istedet kan fordele dataene i flere regioner ved å bruke beslutningstrær, hvor hver splitt i treet deler opp datarommet. Deretter kan en predikere en verdi per område.
+
+![[Pasted image 20260911214950.png]]
+
+En viktig egenskap for regresjonsmodeller og beslutningstrær er at de er tolkbare:
+- Fore regresjonsmodeller, om $\beta_{4}$ er stor, skjønner vi at $x_{4}$ har stor betydning på prediksjonen
+- For beslutningstrær er splittkriteriene forståelig for mennesker, og features som splittes tidlig er viktigere enn de som splittes senere.
+
+## 1.5 Ensemble-modeller
+Alle modeller har sine antakelser og svakheter. Tanken bak #ensemble_learning er at flere modeller kan kombineres, slik at de kompenserer for hverandres svakheter, og til sammen utgjør en samling (ensemble), som benytter seg av hver enkelt modells styrke.
+
+Vi har konseptuelt 3 ulike måter for å kombinere flere modeller:
+- **Parallelt:** Flere modeller trenes uavhengig av hverandre, og prediksjonene deres kombineres til en enkelt prediksjon.
+- **Sekvensiet:** Flere modeller kommer etter hverandre, og hver modell opphever feilen begått av foregående modell. Tail sammen kommer rekken av modeller frem til en prediksjon, der hver modell har minimert feilen gjort av modellen før.
+- **Hierarkisk:** Vi bruker en (eller flere) modeller til å kombinere prediksjonen fra en foregående parallellkombinasjon av flere modeller.
+
+Når vi bruker en trent modell til å gjøre prediksjoner, sier vi at vi gjør #inferens. Skillet mellom trening og inferens er viktig, særlig synlig i ensemble learning.
+
+Kan lage et parallellt ensemble på flere måter:
+- Trene samme type modell med $n$ ulike valg av hyperparametre, for hvert datapunkt vil vi få $n$ ulike prediksjoner som vi **aggregerer** til en endelig prediksjon.
+- Trene $n$ ulike type modeller, og aggregere prediksjonene til en endelig prediksjon.
+- Kan også trene ulike modellene med ulike deler av treningsdataene.
+
+### 1.5.1 Bagging
+Må ta stilling til to spørsmål ved bruk av ensemble med ulike deler av treningsdataene og kombinere prediksjonene:
+1. Hvordan aggregere de ulike modellenes prediksjoner?
+2. Hvordan velge ut hvilke deler av treningsdataene hver enkelt modell trener på?
+#### Aggregering:
+For regresjon tar en som oftest gjennomsnitt av alle modellenes prediksjoner.
+For klassifisering gjøres det som oftest med å velge flertallet av enkeltmodellenes prediksjoner eller å gjøre en vektet avstemning mellom modellene.
+
+#### Utvalg av treningsdata:
+#bootstrapping er et sentralt konsept i utvalg av treningsdata. en underliggende tanken bak bootstrapping er at vi vet at vi ikke kan samle nok data til å representere den underliggende fordelingen bak et fenomen perfekt, men gitt et stort nok datasett kan vi få til et tilstrekkelig representativt utvalg. Likevel vil et representativt utvalg ikke uten videre fortelle oss om usikkerheten i estimatene vi gjør basert på disse dataene, altså hvor stor spredning det har. Gitt datasettet vi har samlet kan vi dog lage et estimat av spredning, eller usikkerhet, ved hjelp av teknikken **bootstrapping**. 
+Dette går ut på å trekke flere datapunkter fra det samme datasettet med tilbake-legging (dette er viktig: det samme datapunktet kan finnes flere ganger i resulterende datasett), og slik ende opp med flere ulike datasett fra det ene datasettet vi startet med. Vi bruker disse ulike datasettene til å estimere den samme størrelsen flere ganger, og slik ende opp med en fordeling av estimatene. 
+
+Denne fordelingen kan vi bruke til å beregne en spredning, eller usikkerhet, i estimatet vårt. Vi startet altså med ett datasett som vi kunne lage ett estimat fra, men har ved hjelp av bootstrapping skaffet oss en fordeling – uten å ha fått tilgang til flere datapunkter eller datasett. Vi har laget mer uten å måtte samle mer data, altså “pulled us up by our own bootstraps”.
+##### [BAGGING kommer fra Bootstrap + AGGregerING]
+Eksempel på ensemblemodell som bruker bagging er #random_forest. Lages ved å sette sammen ulike beslutningstrær, eventuelt stumper. For å få god modell må de ulike trærne være diverse og uavhengige, som gjøres ved å trene på ulike deler av dataene med bootstrapp-teknikken, bruke ulike utvalg data-features og til slutt agreggere prediksjonene sammen - bagging har skjedd.
+
+### 1.5.2 Boosting
+Brukes ofte innen ML for algoritmer som iterativt (sekvensielt) trener svake modeller på en datafordeling, og kombineres til en sterk modell (ensemblet). Går ut på at feilene begått av en modell gjør den påfølgende modellen i iterasjonen bedre, derved "booster" den. Vi ser på to algoritmer som gjør dette:
+
+**AdaBoost**-algoritmen bygger et ensemble av modeller som korrigerer hverandres feil gjennom en iterativ treningsprosedyre. I starten av prosedyren har alle punktene i treningsdataene samme vekt. Etter hver modell trenes, ser vi basert på targets hvilke datapunkter som modellen har størst tap, og øker vektene for disse datapunktene.
+
+**Gradient-boosting** baseres ikke på vekting av observasjoner. Hver modell predikerer forskjellen mellom targets og den forrige modellens prediksjon, såkalte #pseudo_residuals. Det nye ensamblet lages ved å følge læringsregelen
+$$
+ \begin{equation} 
+ \texttt{new\_ensemble = previous\_ensemble - learning\_rate * new\_tree} 
+ \end{equation} 
+$$
+Minner om gradient descent, men gjør gradient descent i rommet over alle mulige trær ensemblet kan bestå av (istedet for i rommet over alle mulige parameterverdier).
+
+Det er en god regel å alltid bruke en ensemble-modell som referanseverdi for hvor godt en modell kan gjøre det, når du jobber med et maskinlæringsproblem med tabulære data.
+
+# 2 Nevrale nettverk
