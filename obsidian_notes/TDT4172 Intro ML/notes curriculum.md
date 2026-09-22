@@ -372,10 +372,10 @@ Dette er nyttig da
 For en og samme modell finnes det en avveining mellom bias og varians, kjent som #bias_variance_tradeoff. Kan utlede for MSE-tapsfunksjonen (se hefte):
 $$
  \begin{equation} 
- \text{MSE}[y,\hat{y}]=\text{Bias}(y,\hat{y})^2 + \text{Var}(\hat{y}) 
+ \text{MSE}[y,\hat{y}]=\text{Bias}(y,\hat{y})^2 + \text{Var}(\hat{y}) + \sigma^2
  \end{equation} 
 $$
-Dette er viktig for å innse at en modells tap består av en komponent fra bias og en fra varians. Dette skaper "the bias variance dilemma" fordi å minske disse kildene til prediksjonsfeil fører til en konflikt, kan ikke ha begge for lave ettersom det gir en dårlig modell. (Lav bias gir veldig generalisering på treningsdataene slik at ikke bruker features ordentlig, som også går for varians.)
+Dette er viktig for å innse at en modells tap består av en komponent fra bias og en fra varians (pluss irredusibelt støy). Dette skaper "the bias variance dilemma" fordi å minske disse kildene til prediksjonsfeil fører til en konflikt, kan ikke ha begge for lave ettersom det gir en dårlig modell. (Lav bias gir veldig generalisering på treningsdataene slik at ikke bruker features ordentlig, som også går for varians.)
 
 ### 1.4.3 Feature engineering
 Annvend lineær regresjonen til formen av testdataene dine! Gjør om featuresene $x$ fra linear til polynom ved $\{x_{1},x_{2}\} = \{x, x^2\}$  og sett opp lineærregresjonen med to features istedet. 
@@ -403,7 +403,7 @@ a) Overtilpasser, b) undertilpasser, c) optimal tap for test og validering
 - Hvis begge kurvene synker jevnt og flater ut, betyr det at modellen klarer å modellere trenings- dataene, og samtidig klarer å generalisere til nye data.
 Kan også bruke metrikkene til å justerehyperparametre, som læringsraten eller avgjøre hvor mange epoker en skal bruke for treningen.
 
-### 1.4.5 Kryssvalidering
+### 1.4.5 Kryssvalidering  
 Hvordan skal dele inn i trenings-, test- og valideringsdata? Skal gjøres tilfeldig, men det vil påvirke testresultatet, avhengig av datasplitten. En løsning er #kryssvalidering.
 Enkleste formen er **leave-on-out-cross-validation** ( #LOOCV), hvor en observasjon fjernes fra det opprinnelige datasettet og brukes til testing. 
 For totalt $n$ datapunt vil vi kjøre trening på $n-1$ datapunkt, også loope igjennom for hvert datapunkt og bruke en og en som testdataen. De $n$ resultatene tar vi gjennomsnittet av for å få LOOCV-estimatet.
@@ -466,3 +466,92 @@ Minner om gradient descent, men gjør gradient descent i rommet over alle mulige
 Det er en god regel å alltid bruke en ensemble-modell som referanseverdi for hvor godt en modell kan gjøre det, når du jobber med et maskinlæringsproblem med tabulære data.
 
 # 2 Nevrale nettverk
+Vi skal nå se på å lage ikke-lineære modeller som transformerer dataene.
+
+## 2.1 Perceptron
+Perseptronet er forgjengeren til moderne nevrale nettverk, introdusert av McCulloch og Pitt i 1943 og bygget første implementasjon av Rosenblatt i 1957. Perseptronet skulle være en maskin; ikke et program, som besto av en eller flere beregningsenheter/noder som ble opprinnelig kalt #threshold_logic_units (**TLU**). Tokk en input $x$ og mappet til en output $f(x)$ som gir ut en binær verdi
+$$
+ \begin{equation} 
+ f(\mathbf{x})=H(\mathbf{wx}+b) 
+ \end{equation} 
+$$
+Der $H$ er Heavside stegfunksjonen ($u(x)$ step-funksjonen) som vi gjerne kaller for en #aktiveringsfunksjon.  Kan skrives med kode som:
+$$
+ \begin{equation} 
+ \texttt{activation = sum(weight\_i * x\_i) + bias} 
+ \end{equation} 
+$$
+$$
+ \begin{equation} 
+ \texttt{prediction = 1.0 if activation >= 0.0 else 0.0} 
+ \end{equation} 
+$$
+Brukes likt som tidligere med klassifisering siden binær funksjon. Men kommer problem med når vi skal derivere tapsfunksjonen fordi ikke kan derivere Heavside funksjonen. I opprinnelige formulieringen av perseptronet er leddet med den deriverte utelatt og bruker heller
+$$
+ \begin{equation} 
+ w_{i}\leftarrow w_{i} + ƞ(y_{i}-\hat{y}_{i})
+ \end{equation} 
+$$
+Vanlig i kode å skrive om $\beta_{0}$ eller $b$ inn i $\mathbf{w}$ og $\mathbf{x}$ slik at første element i $\mathbf{x}$ er 1 og $\mathbf{w}$ har et tilsvarende ledd for $\beta_{0}$ eller $b$, også skrive:
+$$
+ \begin{equation} 
+ \texttt{w = w + learning\_rate * (expected - predicted) * x} 
+ \end{equation} 
+$$
+Kan bruke med $\texttt{sklearn.linear\_models.Perceptron}$:
+```python
+perceptron = Perceptron().fit(X_train, y_train)
+y_pred = perceptron.predict(X_test)
+```
+![[Pasted image 20260922104246.png]]
+
+#### Logiske operasjoner
+Perseptroner kan brukes til å gjøre logiske operasjoner. Husk formelen for f(x):
+- NOT: en variabel $x_{1}$ med $(w_{1},b)=(-1,0.5)$ 
+- AND: to variable $x_{1},x_{2}$ med $(w_{1}. w_{2}, b)=(1,1,-1.5)$
+- OR: to variable $x_{1},x_{2}$ med $(w_{1},w_{2},b)=(1,1,-0.5)$
+- XOR: Flere TLU, run an OR and a NOT AND, take the outputs and run through AND
+
+## 2.2 Aktiveringsfunksjoner
+Ulempe med perseptronet er bruken av Heavside funksjonen gjør den veldig sensitiv til små endring i input. I moderne nevrale nettverk er mer vanlig å bruke #Sigmoid-funksjonen, #softmax,  og #ReLU. Disse brukes til ulike formål.
+
+| Modell  | Brukes til                | Funksjon                        .                                       |
+| ------- | ------------------------- | ----------------------------------------------------------------------- |
+| Sigmoid | Binær klassifisering      | $\sigma(x)=\frac{1}{1+e^{-x}}$                                          |
+| softmax | Ikke-binær klassifisering | $\text{softmax}(\mathbf{x})_{i}=\frac{e^{x_{i}}}{\sum_{j}^{}e^{x_{j}}}$ |
+| ReLU    | For MLP                   | $\text{ReLU}=\text{max}(0,x)$                                           |
+#### Softmax
+Vanlig å bruke softmax i output-nodene. Sikrer at aktiveringene summer til 1. DA representerer hver av output-nodene datapunktets predikerte tilhørighet til de respektive klassene, og må ha en output-node per klasse.
+#### ReLU
+Rectified linear unit ( #ReLU) brukes i moderne nevrale nettverk som har som regel flere lag, mellom input- og output-lagene. (Se [[#2.3 Arkitektur|2.3]]) Slike modeller kalles multi layer perceptrons ( #MLP). Vi velger fritt aktiveringsfunksjoner til lagenes noder selv, faget holder seg til ReLU.
+
+MLP-modeller som ikke gjør klassifisering men regresjon, må ha output-noder som kan returnere kontinuerlige tallverdier som ikke er begrenset til et intervall (som \[0, 1] i klassifisering). Som regel brukes da en lineær aktiveringsfunksjon i output-laget
+
+## 2.3 Arkitektur
+Vi kan sette sammen noder på ulike måter for å lage nevrale nettverk. Måten de er satt sammen kalles $nettverkets\  arkitektur$. Nevrale nettverk består av lag av noder stablet i høyden. Det vil si noder som ikke mottar input fra hverandre. Informasjon går kun fra noder i nabo lag, ikke mellom noder i samme lag. Nevrale nettverk består av 3 typer lag:
+- **Input-laget** er det første laget. Mottar og sender data inn i nettverket. Samme antall noder som dataene har features.
+- **Output-laget** er det siste laget. Representerer nevrale nettverkets prediksjon. Om veildet læring må det har samme dimensjonalitet/antall noder som targets i dataene.
+- **Indre lag** er alle lagene mellom I/O lagene. Blir og kalt skjulte lag.
+![[Pasted image 20260922112201.png]]
+
+Ulike arkitekturer er bedre og dårligere egnet tl ulike oppgaver. Eks brukes konvolusjonslag til bildegjenkjenning og transformer-blokker til sekvensiell data som språk. Skal ikke se på i faget her, bare **arkitekturer der alle nodene i hvert lag er koblet til alle nodene i nabo lagene.** Kalles MLP eller **fully connected feed-forward** nettverk.
+Generelt har vi følgende uttrykk for aktiveringen $a$ til en gitt node med indeks $j$ i lag $l$ av det nevrale nettverket
+$$
+ \begin{equation} 
+ a^l_{j} = g\left( \sum_{i=0}^{n} w_{ij}^l a_{u}^{l-1} \right) \ \ \ | a^{(0)}_{ i} = x_{i} 
+ \end{equation} 
+$$
+Her er 
+- $l$ indeks for lag, indeks 0 er input
+- $i$ indeks for node i forrige lag
+- $j$ indeks for node i det aktuelle laget
+- $a_{i}^{l-1}$ aktiveringen av node i forrige lag $l-1$
+- $g$ aktiveringsfunksjonen i det aktuelle laget.
+Eksempel: Første noden i andre laget i bildet:
+$$
+ \begin{equation}
+ a_{1}^{(1)}  = g\left( \sum_{i=0}^{n} w_{i{1}}^1 x_{i}   \right) 
+ \end{equation} 
+$$
+
+![[Pasted image 20260922120254.png]]

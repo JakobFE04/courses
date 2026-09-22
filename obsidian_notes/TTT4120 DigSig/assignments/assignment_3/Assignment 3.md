@@ -63,29 +63,42 @@ $$
  H(z)=\frac{1}{1-\frac{2}{3}z^{-1}} 
  \end{equation} 
 $$
-
+$$
+ \begin{equation} 
+ \implies h[n]=\left( \frac{2}{3} \right)^n u[n] \ \ \& \ \ \text{ ROC: }|z|> \frac{2}{3} 
+ \end{equation} 
+$$
 ## b)
 $$
  \begin{equation} 
- H(z)=\frac{1}{\left( 1+\frac{1}{2}z^{-1} \right)(1-z^{-1})}= \frac{1}{\left( 1-\frac{1}{2}z^{-1}-\frac{1}{2}z^{-2} \right)}=\frac{-2}{(2z^{-1})}
+ H(z)=\frac{1}{\left( 1+\frac{1}{2}z^{-1} \right)(1-z^{-1})} = \frac{A}{\left( 1+\frac{1}{2}z^{-1} \right)} + \frac{B}{(1-z^{-1})}\implies \frac{\frac{1}{3}}{1+\frac{1}{2}z^{-1}}+\frac{\frac{2}{3}}{1-z^-1}
  \end{equation} 
 $$
-
+$$
+ \begin{equation} 
+ \implies h[n]=\left( \frac{1}{3} \left( -\frac{1}{2} \right)^n+\frac{2}{3} \right) u[n] \ \ \ \& \ \ \text{ROC: |z|> 1} 
+ \end{equation} 
+$$
 ## c)
 $$
  \begin{equation} 
- H(z)=\frac{z^{-1}}{\left( 1-\frac{3}{2}z^{-1} \right)(1-3z^{-1})} 
+ H(z)=\frac{z^{-1}}{\left( 1-\frac{3}{2}z^{-1} \right)(1-3z^{-1})} =\frac{A}{\left( 1-\frac{3}{2}z^{-1} \right)} + \frac{B}{(1-3z^{-1})} \implies-\frac{2}{3}\left(  \frac{1}{1-\frac{3}{2}z^{-1}} + \frac{1}{(1-3z^{-1})} \right)
  \end{equation} 
 $$
-
+$$
+ \begin{equation} 
+ \implies h[n]=-\frac{2}{3} \left[ -\left( \frac{3}{2} \right)^n-3^n \right] u[-n-1]
+ \end{equation}  \ \ \& \ \ \ \text{ROC: } |z|< \frac{3}{2}
+$$
+## d)
+For the system to be BIBO stable, the unit circle has to be within ROC, which goes for a) and c) as they are both true for $|z|=1$.
 
 
 # Problem 3)
 ## a)
-
-
-
-
-
+![[Pasted image 20260914145319.png|650]]
+## b & c)
+![[Pasted image 20260914153917.png|650]]
 
 # Problem 4)
+![[Pasted image 20260914162629.png|650]]
