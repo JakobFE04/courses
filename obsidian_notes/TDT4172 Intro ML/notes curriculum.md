@@ -555,3 +555,5 @@ $$
 $$
 
 ![[Pasted image 20260922120254.png]]
+
+## 2.4 Backpropagation
