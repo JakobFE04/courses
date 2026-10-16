@@ -220,13 +220,13 @@ $$
 Hvis vi antar at verdiene til featuresene er uavhengige av hverandre for alle features, så kan vi skrive dette om til Naiv Bayes:
 $$
  \begin{equation} 
- p(C_{k}|x) ∝ p(C_{k}) \prod_{i=1}^{n}p(x_{i}C_{k})
+ p(C_{k}|x) ∝ p(C_{k}) \prod_{i=1}^{n}p(x_{i}|C_{k})
  \end{equation} 
 $$
 Som gir at den tilsvarende sannsynligheten for klassetilhørighet:
 $$
  \begin{equation} 
- \hat{y}= \arg_{k\ \epsilon [1,\dots,n]} \max p(C_{k}) \prod_{i=1}^{n}p(x_{i}C_{k})
+ \hat{y}= \arg_{k\ \epsilon [1,\dots,n]} \max p(C_{k}) \prod_{i=1}^{n}p(x_{i}|C_{k})
  \end{equation} 
 $$
 
@@ -266,13 +266,13 @@ Nederst i treet er løvnodene (leaf nodes) som ikke splitter dataene, som inneho
 
 Beslutningstrær består av trestumper (tree stumps) som igjen består av en rotnode og $n$ løvhoder, for $n$ mulige utfall.
 
-Treningsdataene brukes for å finne ut hvilke trestumper (og tilhørende beslutningskriterier) som bør settes sammen for å lage treet. N˚ar vi bygger beslutningstrær ønsker vi alltid å velge det splitt-kriteriet som lar oss ta beslutningen tidligst mulig, altså reduserer usikkerheten mest mulig. Redusert usikkerhet er endringen i usikkerhet etter sammenliknet med før splitt. I hovedsak brukes følgende tre metrikker for å måle hvor mye et splitt-kriterium (feature og verdi) reduserer usikkerheten:
+Treningsdataene brukes for å finne ut hvilke trestumper (og tilhørende beslutningskriterier) som bør settes sammen for å lage treet. Når vi bygger beslutningstrær ønsker vi alltid å velge det splitt-kriteriet som lar oss ta beslutningen tidligst mulig, altså reduserer usikkerheten mest mulig. Redusert usikkerhet er endringen i usikkerhet etter sammenliknet med før splitt. I hovedsak brukes følgende tre metrikker for å måle **hvor** mye et splitt-kriterium (feature og verdi) reduserer usikkerheten:
 - Log loss (Se #tapsfunksjon og #cross-entropy-loss)
 - Gini impurity
 - Entropi
 
 ### 1.3.2 Gini impurity
-Gini-urenheten er et tall i \[0, 0.5] som angir sannsynligheten for at et nytt, tilfeldig datapunkt feilklas- sifiseres hvis det gis et tilfeldig label i henhold til klassedistribusjonen i datasettet. Gitt et datasett D bestående av datapunkter fra k klasser, med sannsynlighet pi for at en instans tilhører klassen i ved en gitt node, er datasettets Gini-urenhet:
+Gini-urenheten er et tall i \[0, 0.5] som angir sannsynligheten for at et nytt, tilfeldig datapunkt feilklassifiseres hvis det gis et tilfeldig label i henhold til klassedistribusjonen i datasettet. Gitt et datasett D bestående av datapunkter fra k klasser, med sannsynlighet pi for at en instans tilhører klassen i ved en gitt node, er datasettets Gini-urenhet:
 $$
  \begin{equation} 
  \text{Gini}(D)=1-\sum_{i=1}^{k} p_{i}^2 
@@ -557,3 +557,158 @@ $$
 ![[Pasted image 20260922120254.png]]
 
 ## 2.4 Backpropagation
+I stedet for gradient descent likt som med lineær regresjon, så på grunn av lagene i nevrale nettverk må en ta hensyn til at en ikke vet hva som er "riktige verdien" til de ulike nodene i indre/skjulte lag. Vi vil fremdeles bevege oss i parameterrommet, og estimerer dermed gradienten til tapsfunksjonen som funksjon av parametrene med tilbakepropageringe ( #backpropagation).
+
+![[Pasted image 20261002142917.png]]
+![[Pasted image 20261002142935.png]]
+
+## 2.5 Bygge, trene og predikere
+Python biblitoker for å lage nevrale nettverk: $\texttt{keras \& tensorflow}$. 
+
+Eksempel på nevral nettverk:
+Kinda shit klassifisering
+```python
+import matplotlib
+matplotlib.use("QtAgg")
+import matplotlib.pyplot as plt 
+import numpy as np
+import keras
+from sklearn.datasets import make_moons
+from sklearn.model_selection import train_test_split
+from keras import ops 
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+x = ops.ones((10,2)) # Makes an input matrix with 3 rows and 10 coloums with ones (1).
+
+model = Sequential()
+model.add(keras.Input(shape=(2,)))
+model.add(Dense(6, activation="relu", name="layer1"))
+model.add(Dense(7, activation="relu", name="layer2"))
+model.add(Dense(1, activation="sigmoid", name="output"))
+
+model(x)
+model.compile(
+        optimizer="SGD",
+        loss="binary_crossentropy",
+        metrics=["accuracy"]
+        )
+
+
+X, y = make_moons(n_samples=2000, shuffle=True, noise=0.2, random_state=42)
+
+x_temp, x_test, y_temp, y_test = train_test_split(X, y, test_size=0.2)
+x_train, x_val, y_train, y_val = train_test_split(x_temp, y_temp, test_size=0.2)
+
+history = model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_val, y_val))
+
+predictions = model.predict(x_test)
+predictions = (predictions > 0.5).astype(int)
+
+x_t, y_t = np.array(x_test).T
+x_tr, y_tr = np.array(x_train).T
+
+fig, (ax, xa) = plt.subplots(1,2, figsize=(15,10))
+ax.scatter(x_t, y_t, c=predictions[:,0], cmap="coolwarm", label="Predictions")
+xa.scatter(x_tr, y_tr, c=y_train, cmap="magma", label="Train")
+fig.legend()
+
+#train_losses = history.history["loss"]
+#val_losses = history.history["val_loss"]
+#epochs = np.arange(1, len(train_losses)+1)
+#plt.plot(epochs, train_losses, label="Train loss")
+#plt.plot(epochs, val_losses, label="Validation loss")
+#plt.xlabel("Epochs")
+#plt.ylabel("Loss")
+#plt.legend()
+plt.show()
+
+``` 
+![[notes.png]]
+
+![[Pasted image 20261002162641.png]]
+
+# 3 Uveiledet Læring
+Vi har nå ikke fasit på dataene våre, vi kaller det for #unlabeled_data, det vil si data uten targets. Handler om å gjøre maskinlæring med læringsalgoritmer som finner mønstre i data uten targets. VI skal se på tre kategorier uveiledet læring:
+- Clustering / klynging
+- Dimensionality reduction / dimensjonsreduksjon
+- Outlier detection / anomalideteksjon
+
+## 3.1 Clustering
+Kan tolkes som en form for "klassifisering uten labels", med formålet om å finne egnede grupperinger av like datapunkter i et datasett. Kan bruke flere likhetsmetrikk som avstand mellom datapunktene. Vi skal se på to ulike læringssignal, aka tap å minimere for optimaliseringsprosessen:
+- K-means, likhet defineres som avstand.
+- DBSCAN, likhet defineres som tetthet.
+
+### 3.1.1 k-means
+$k$-means deler datasettet bestående av $n$ datapunkter, inn i $k$ klynger. Hvert datapunkt tilordnes klyngen hvis klyngesentrum er nærmest datapunktet.
+1. Velg et tall k, som representerer antall klynger.
+2. Velg $k$ tilfeldige klyngesentroider, dvs midten av klyngene og må ikke være et datapunkt selvom kan være.
+3. Tildel hvert datapunkt en tilfeldig klynge.
+4. Beregn den Euklidske avstanden mellom hvert datapunkt og alle sentroidene.
+5. Tildel hvert datapunkt den nærmeste sentroiden fra steg 4.
+6. Velg nye sentroider ved å regne ut middelverdien ($\texttt{np.mean}$) for hver klynge.
+7. Gjenta steg 4, 5 og 6 intill klyngen ikke endrer seg.
+
+Utfordring er å velge gode tilfeldige sentroider, og sannsynligheten for å velge uegnede steder øker eksponensielt med $k$.
+Intuitivt: Vi har $k$ valg per tilfeldig plassering, altså $k^k$ like sannsynlige sekvenser av sentrioder.
+Sekvensene vi er ute etter er de hvor alle k sentroidene svarer til ulike labels, altså én sentroide per klynge. Dette er bare ulike ordninger av k klynger, og vi har til sammen $k!$ av disse. Antall gunstige over mulige er derfor $k!/k^k$.
+
+Stirlings approksimasjon lar oss skrive om fakultet som
+$$
+ \begin{equation} 
+ k! \approx \sqrt{ 2\pi k } \ e^{-k}k^k 
+ \end{equation} 
+$$
+Som vil si eksponensielt avtakende med for å initialisere $k$ sentroider i unike klynger.
+
+En annen vanlig løsning er å velge første sentroiden tilfeldig, også plassere neste sentroide på datapunktet som er lengst borte fra den første, gjentatt for alle $k$ sentroidene.
+
+#### $\texttt{kmeans++}$
+![[Pasted image 20261016152820.png]]
+
+Generelt har $k$-means følgende ulemper:
+- Følsom for antall sentroider valgt, automatisk valg fungerer ofte dårlig, og manuelt valg er kun så godt som utvalgsmetoden.
+- Svak med outliers, siden disse kan trekke sentroidene vekk fra de faktiske klyngene.
+- Fungerer dårlig i høydimensjonale rom fordi den baserer seg på Euklidsk avstand, som konvergerer til en konstant for store $d$.
+Og følgende fordeler:
+- Lett å forstå og implementere
+- Fungerer godt på store datasett (store $n$)
+
+### 3.1.2 DBSCAN
+Baserer seg på identifisere tre typer punkter i dataene:
+1. Kjernepunkter: datapunkter som ligger nært midten av en klynge.
+2. Ikke-kjernepunkter: Data punkter som tilhører klyngen, men ligger i utkanten.
+3. Outliers: Datapunkter som ikke tilhører noen klynger. _En hovedstyrke ved metoden at den ikke prøver å putte disse punktene i klynger!_
+
+Relevante hyperparametre for DBSCAN er $\epsilon$, som angir maksimal avstand mellom to nabopunkter som kan tilhøre samme klynge, og $\texttt{min\_samples}$, som angir minimum antall naboer et punkt må ha for å telle som et kjernepunkt. DBSCAN-algoritmen bruker følgende prosedyre:
+1. Identifiser kjernepunkter ved å telle antall naboer innenfor en avstand $\epsilon$. Hvis dette antallet er større enn $\texttt{min\_samples}$, er datapunktene kjernepunkter.
+2. Gå gjennom kjernepunktene og spre klyngen til datapunkter i nærheten. Hvis punktet er et kjernepunkt, bruk det til å utvide klyngen. Hvis ikke er datapunktet et ikke-kjernepunkt.
+3. Identifiser alle punkter som ikke tilordnes en klynge, som outliers.
+
+Vi vet altså om et datapunkt er en et kjernepunkt basert på hyperparametrene, allerede i steg 1. Etter denne prosedyren vet vi også forskjellen mellom outliers og ikke-kjernepunkt. Ikke-kjernepunkter har færre enn $\texttt{min\_samples}$ naboer innenfor en avstand $\epsilon$, men de er innenfor en asvstand $\epsilon$ av et kjernepunkt. De er da med i klyngen, men bidrar ikke til å utvide klyngen.
+
+Fordeler ved DBSCAN er at vi ikke trenger å spesifisere antall klynger, at algoritmen heller ikke gjør en antakelse om dette antallet, og at algoritmen har en metode for å identifisere outliers og dermed er robust for outliers. Ulempene er følsomhet for valg av ϵ og $\texttt{min\_samples}$, og dessuten at disse er globale variabler: det kan hende at vi får datasett der klyngene har ulik tetthet for ulike datapunkter. Siden vi bare kan velge én verdi av henholdsvis ϵ og $\texttt{min\_samples}$, er DBSCAN mindre egnet i tilfeller der klyngetettheten varierer. DBSCAN er også tregere for store datasett (stor n), fordi den må beregne avstander mellom samtlige punkter for å finne naboer og identifisere klyngepunkter, og er svakere i høydimensjonale data, fordi den baserer seg på et mål av avstand, som er utfordrende i høydimensjonale rom, på grunn av dimensjonsforbannelsen.
+
+### 3.1.3 Hovedkategorier
+Vi kan dele clustering-algoritmer i 4 hovedkategorier:
+- **Sentroidebasert** Starter med sentroider, assosierer datapunkter med disse og tilpasser frem til konvergens.
+- **Tetthetsbasert** Klynger defineres basert på tettheten til datapunkter. Punkter som ligger nærme hverandre defineres som klynger, men isolerte punkter defineres som outliers.
+- **Fordelingsbasert** Gjør antakelsen at hver klynge består av punkter fra en sannsynlighetsfordeling, vanligvis en Gauss. Målet er å finne parametrene til denne fordelingen.
+- **Hierarkibasert** Lager et hierarki av klynger. I starten er alle datapunktene en egen klynge, og på slutten tilhører alle datapunktene samme klynge. Klyngene som dannes underveis sorteres i et hierarki, og man velger ut de genererte klyngene fra et steg i hierarkiet.
+
+### 3.1.4 Dimensjonsforbannelsen igjen
+![[Pasted image 20261016160440.png]]
+![[Pasted image 20261016160459.png]]
+
+
+## 3.2 Dimensjonsreduksjon
+![[Pasted image 20261016164238.png]]
+
+
+## 3.3 Anomalideteksjon
+![[Pasted image 20261016165151.png]]
+
+## 3.4 Self-supervised learning???
+
+
+# 4 Reinforcement learning
