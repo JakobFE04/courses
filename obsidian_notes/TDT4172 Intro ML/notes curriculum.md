@@ -712,3 +712,90 @@ Vi kan dele clustering-algoritmer i 4 hovedkategorier:
 
 
 # 4 Reinforcement learning
+Mye teori bak #reinforcement_learning forkortet RL, men skal kun se på en del av den. Finnes mange læringsregimer, vi skal se på #Q-learning.
+
+## 4.1 Markov Decision Process
+NB! Agent her er ikke samme som Agent i dagens språkmodeller som Copilot og ChatGPT!
+
+RL er en type maskinlæring hvor en #agent lærer å ta beslutninger i et miljø, omtalt som #environment, ved å utføre handlinger, omtalt som #actions, for å maksimere forventet belønning, omtalt som #expected_reward. Dette gjøres i en loop som Figur 29 under:'
+
+![[Pasted image 20261026105239.png]]
+
+Miljøet gir agenten en state/tilstand $S_{t}$ ved steg $t$ som agenten velger en action/handling $A_{t}$ basert på. Dette gir en reward/belønning $R_{t+1}$ fra miljøet, og setter miljøet i en ny tilstand $S_{t+1}$. Og sånn fortsetter den i en loop.
+
+Antar at den fremtidige tilstanden til miljøet kun er avhengig av inneværende tilstand og valgt handling; ikke tidligere states/actions. Dette tilsvarer en #Markov-prosess som vil si at den er uavhengig av historien. Blir også kallt memoryless. _"Fremtiden er uavhengig av fortiden gitt nåtiden"_.
+
+En beslutningsprosess som har Markov-egenskapen, kalles en #Markov_decision_process (MDP). Formelt er en MDP en 4-tuple av
+- $S$ er set av states (State space)
+- $A$ er set av actions (Action space). Alternativt: $A_{S}$ er settet av actions tilgjengelig fra state $S$
+- $P_{A}(S_{t}, S_{t+1}) = P(S_{t+1}|S_{t, A_{t}})$ er sannsynligheten for at action $A_{t}$ i state $S_{t}$ vil føre til $S_{t+1}$
+- $R_{A}(S_{t},S_{t+1})$ er den umiddelbare rewarden for å transisjonere fra state $S_{t}$ til $S_{t+1}$ gjennom action $A_{t}$.
+
+Vi skal ikke se på transisjonssannsynligheter, bare holde oss til deterministiske miljøer! Basert på en **læringsprosess i miljøet** som gir agenten states og rewards, skal agenten finne måte å velge ut beste action basert på en gitt state. Denne måten kalles en #policy, og vi bruker notasjonen $\pi(A_{t}|S_{t})$ for å anngi en policy for å velge action basert på state. Målet til en RL-agent er å finne en $optimal \ policy$, som maksimerer total reward, omtalt som kumulativ reward, fra miljøet.
+
+Agenten kan være mye forskjellig, og vi skal først se på en tabell og deretter et nevralt nettverk som agent. For at denne skal kunne lære en optimal policy, må den trenes på å velge action som gir høy reward, og vi må ha en måte å beregne kumulativ reward. Dette gjør vi gjennom en utility eller value function, som angir hvor verdifull en tilstand og action er på lang sikt, under en viss policy. Denne verdifunksjonen kvantiserer altså forventet verdi av å være i en gitt tilstand, utføre en gitt action, følge en gitt policy, og fortsette å følge denne policyen fremover. Agenten trenger verdifunksjonen for å kvantisere de langsiktige konsekvensene av en action og policy, i stedet for å bruke kun umiddelbar reward.
+
+## 4.2 Q-verdier
+Verdifunksjon der Q står for $quality$ og angir verdien (kvaliteten) til en state-action kombinasjon, som $Q \ : \ S \ \times \ A \ \to \mathbb{R}$. Vi beregner den ved bruk av Bellman-likningen:
+$$
+ \begin{equation} 
+ Q^{new}(S_{t},A_{t}) \leftarrow (1-\alpha) \cdot Q(S_{t},A_{t})+ \alpha \cdot (R_{t+1}+\gamma \max_{A}Q(S_{t+1}, A))
+ \end{equation} 
+$$
+- $Q^{new}(S_{t},A_{t})$ representerer den oppdaterte verdien av å være i $S_{t}$ og gjøre $A_{t}$
+- $Q(S_{t},A_{t})$ er den gamle verdien av å være i $S_{t}$ og gjøre $A_{t}$. Hvis du bruker tabell initialiseres denne ofte til 0, og for nevralt nettverk har denne tilfeldige vekter i starten.
+- $R_{t+1}$ er reward mottatt for å være i $S_{t}$ og gjøre $A_{t}$
+- $\max_{A}Q(S_{t+1})$ er maksimal verdi av state $S_{t+1}$ for alle tilgjengelige actions.
+- $\alpha$ angir #læringsraten, hvor mye av gamle vs nye verdien til $Q$ skal beholdes/påvirke parantesen.
+- $\gamma$ kalles #discount_factor og gjør at rewards mottatt tidligere vektes ulikt fra rewards mottatt senere.
+
+Dette forteller oss at vi må beregne $Q$-verdien til et state-action-par iterativt, som fører til loopen:
+1. $Q$ initialiseres.
+2. For hvert steg $t$ har miljøet en tilstand $S_{t}$, agenten velger en action $A_{t}$, observerer en reward $R_{t+1}$ og får en ny tilstand $S_{t+1}$.
+3. $Q$ oppdateres basert på disse verdiene og 2-3 gjentas til RL-loopen terminerer.
+
+Forskjellen mellom verdi og reward er subtil men viktig.
+- Verdifunksjonen ($Q$-verdiene) angir forventede verdien av en action i en state inkludert fremtidig verdi under en gitt policy.
+- Reward får agenten fra environmentet som en tilbakemelding på agentens actions i ulike states.
+**Vi får reward fra environment, mens $Q$ må læres.**
+
+## 4.3 Environments
+![[Pasted image 20261026125956.png]]
+
+## 4.4 Agenter: exploration, exploitation og læring
+Agenten skal bruke $Q$ verdier til å velge actions basert på states. Det kalles $Q$-learning og kan gjøres på flere måter. Lagres typisk som en dictionary med state som key.
+
+Vi må bestemme #hyperparameter $\alpha$ og $\gamma$. Måten agenten får tilgang til treningsdata er gjennom å utføre ulike actions i ulike states. For å sikre at den utforsker de tilgjengelige mulighetene brukes hyperparameteren #exploration_factor, oft brukt $\epsilon \in [0,1]$. Styrer hvor mye agenten utforskerer (explorer) miljøet sitt, og representerer sannsynligheten for at agenten velger en tilfeldig handling/action. Funksjonen som velger actions, skal velge actionen som tilsvarer høyest $Q$-verdi med en sannsynlighet på $1-\epsilon$, ellers velge en tilfeldig action fra environmentets action space. Dvs. høy epsilon -> Mye tilfeldige actions. Lav epsilon -> Velger action med høyest $Q$-verdi.
+
+![[Pasted image 20261026131434.png]]
+
+Kan så lage en $\texttt{Player}$ klasse får å gjøre agenten til et objekt. For tre-på-rad eksempel må en ha minimum
+- Tag <- "X" eller "0"
+- $Q$-tabell <- en dictionary, inneholder alle Q-verdiene agenten kjenner, og må læres
+- $\alpha, \gamma, \epsilon$ <- agentenes parametre. I tillegg kommer eventuelle læringsspesifikke parametre.
+![[Pasted image 20261026133238.png]]
+![[Pasted image 20261026133258.png]]
+
+## 4.5 Q-tabell
+$Q$-læring handler om å oppdatere $Q$-verdiene etter hvert som agenten får erfaring fra environmentet, som vil si fylle ut $Q$-tabellen gjennom læring. Vanlig å ha tom/0 i starten, også ha en nøstet dictionary som fylles ut etterpå med states som keys, også hver state har en egen dictionary med actions som keys for å state-action-parene for hver state.
+
+I starten av læringen er agenten en komplett idiot og gjør tilfeldige trekk. På slutten av hvert spill får den en reward som brukes i læringsprosessen for å fylle inn og forbedre verdiene i $Q$-tabellen. Eks kode:
+![[Pasted image 20261026135427.png]]
+
+Først henter den ut gamle $Q$-verdien fra dictionary $\texttt{v\_s}=(1-\alpha)\cdot Q(S_{t},A_{t})$ også henter ut maksimale fremtidige $Q$-verdien med nye staten om den eksisterer (0 hvis ikke) som $\texttt{v\_s\_next}=\max_{A}Q_{S_{t+1},A}$.
+Deretter beregner den og erstatter gamle $Q$-verdien med den nye og trener modellen på nytt med staten den er i og nye $Q$-verdien.
+
+Vi trenger funksjon for å oppdatere $\epsilon$ i løpet av treningen også:
+![[Pasted image 20261026140811.png]]
+Generelt sett med RL så om en agent ikke har rukket å lære noe innen $exp\_factor>exp\_min$ så kommer den ikke til å lære noe mer ved å trene videre og burde endre noe annet som tapsfunksjonen.
+
+Kode for å tre-på-rad:
+https://gitlab.com/Strumke/ntnu-lectures/-/blob/main/Tictactoe%20Q-learning/watch_tictactoe.py?ref_type=heads
+
+
+Agenten får ikke reward før spillet er over, men gjennom Q-verdiene kan vi forstå agentens forventede fremtidige reward. Sagt mer presist representerer Q-verdiene forventet kumulativ fremtidig reward av å gjøre action A i state S og følge policyen deretter.
+
+
+$$
+Q(s, a) \gets Q(s, a) + \alpha \cdot \Big[ R(s, a) + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a) \Big]
+$$
