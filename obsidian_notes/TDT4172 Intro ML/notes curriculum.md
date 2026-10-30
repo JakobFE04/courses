@@ -799,3 +799,51 @@ Agenten får ikke reward før spillet er over, men gjennom Q-verdiene kan vi for
 $$
 Q(s, a) \gets Q(s, a) + \alpha \cdot \Big[ R(s, a) + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a) \Big]
 $$
+
+## 4.6 Deep Q-learning
+I stedet for Q-tabeller kan vi bruke et nevralt nettverk til å estimere Q-verdier, inkludert for tilstander agenten aldri har vært i. Om vi bruker dype nevrale nettverk, kaller vi det #deep_reinforcement_learning, forkortet DRL. Et dypt nevralt nettverk for å estimere Q-verdier kalles et #deep_Q-network, forkortet DQN.
+
+### 4.6.1 Environment: Frozen lake
+![[Pasted image 20261030155356.png]]
+![[Pasted image 20261030155408.png]]
+
+### 4.6.2 DQN: Q network og target network
+Vi trenger 4 noder i output laget for å predikere Q-verdiene for hver action. 
+Agenten kan befinne seg i 16 uilike ruter, og da kan det være lurt å bruke one-hot-encode input. Bruker vi det kan vi ta inn en state som et tall \[0,15] og gjøre om til en tensor med shape \[1,16] bestående av den one-hot-encodede versjonen av samme state.
+Eksempel kode:
+![[Pasted image 20261030161311.png]]
+![[Pasted image 20261030161324.png]]
+
+Funksjonen bør tilhøre klassen agenten er en instans av. Trener vi det nevrale nettverket til å løse Frozen Lake, går det nok dårlig. Grunnen er at vi har ikke en enket Q-verdi vi skal oppdatere som i Q-tabellen lenger, men oppdatere alle nettverksparametrene i DQN samtidig. Da blir alle Q-verdiene endret, også for actions i neste state. Da får vi problemer for trening, siden vi ender opp å trene med et bevegelig mål som target. Vanligste konsekvensen av dette problemet er ustabil trening.
+
+Et annet kjent fenomen innen RL er at agenten kan plutselig glemme det den har lært, calt #catastrophic_forgetting, som vises gjennom at nettverket først lærer seg å løse oppgaven og mottar høy reward over en periode, men så kollapser reward og nettverket begynner å gjøre dårlige prediksjoner. Dette kan skje selv om både læringsraten og $\epsilon$ har lave verdier. 
+- Lengre trening løser ikke dette, da den glemmer i takt med at det lærer.
+- Skyldes som oftest overtilpasning til nylige hendelser mens gammel lærdom forsvinner i nye parameteroppdateringer.
+
+Problemene som forårsakes av at det samme nettverker representerer policy og oppdateres underveis, og at nettverket overtilpasser seg til nylige hendelser kan løses ved hjelp av to virkemidler:
+1. $\texttt{target network}$, et nytt nveralt nettverk som utgjør en stabilt mål og en stabil policy under treningen. Er en kopi av originale Q-nettverket som oppdateres med lavere frekvens og predikerer $\max_{A}Q$ i Bellman-likningen under trening. Oppdateres ved å kopiere vektene fra Q-nettverket ved en satt frekvens.
+2. $\texttt{replay buffer}$, lagrer acions, states, nye states og rewards i minnet, som trekkes tilfeldig datapunkter fra under trening. Trekningen av datapunkter utgjør en batch.
+
+![[Pasted image 20261030163607.png]]
+
+Kan gjenbruke $\texttt{update\_epsilon \& select\_action}$ fra Q-tabell koden ettersom det er samme. Da mangler bare selve læringsfunksjonen.
+
+### 4.6.3: DRL: loss av Q-verdier og backpropagation
+Funksjonen vi bruker for å trene Q-nettverket må 
+- hente data fra replay buffer, 
+- estimere maksimal verdi for neste states ved hjelp av target network, 
+- bruke $\max_{A}(Q)$ til å beregne oppdatert Q-verdi, 
+- finne predikert Q-verdi for valgte actions (selv om disse ble valgt gjennom exploration) fra Q- nettverket, 
+- beregne loss mellom predikert Q-verdi og oppdatert Q-verdi, og 
+- backpropagate loss gjennom, altså trene, Q-nettverket.
+
+Å trene Q-nettverket gjøres ved å beregne loss på en batch, beregner gradienten til nettverksparametrene, og så oppdaterer parametrene basert på gradienten ved hjelp av backpropagation. 
+
+Utfordringen er å beregne loss, siden vi har $Q(S_{t}, A_{t})$ predikert, men vi ønsker at modellen faktisk predikerer $R_{t+1}+\max_{A}Q(S_{t+1},A)$. Vi har følgende:
+- En Q-verdi per action fra Q-nettverket som skal trenes, og
+- oppdatert Q-verdi (target) for den ene action agenten utført.
+Vi kan da regne loss mellom den predikerte og oppdaterte Q-verdien for den ene action som ble valgt for å havne i neste state. Så kan vi bruke loss til backpropagation og trene Q-nettverket.
+![[Pasted image 20261030165125.png]]
+
+Da kan vi lage RL-loopen:
+![[Pasted image 20261030165320.png]]
